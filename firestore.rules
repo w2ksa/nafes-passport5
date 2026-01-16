@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // قاعدة بيانات الطلاب
+    match /students/{studentId} {
+      // السماح بالقراءة للجميع (للعرض العام)
+      allow read: if true;
+      
+      // السماح بالكتابة حتى تاريخ محدد (يمكن تعديله لاحقاً)
+      // للاستخدام الآمن، استخدم المصادقة بدلاً من التاريخ
+      allow write: if request.time < timestamp.date(2026, 12, 31);
+      
+      // للاستخدام الآمن في المستقبل، استبدل السطر أعلاه بـ:
+      // allow write: if request.auth != null;
+    }
+    
+    // منع الوصول لأي شيء آخر
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+

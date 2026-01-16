@@ -1,0 +1,29 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // الصور الشخصية للطلاب
+    match /avatars/{imageId} {
+      // السماح بالقراءة للجميع
+      allow read: if true;
+      
+      // السماح بالكتابة للجميع (يمكن تقييدها لاحقاً)
+      allow write: if request.time < timestamp.date(2026, 12, 31);
+      
+      // أو استخدام المصادقة:
+      // allow write: if request.auth != null;
+    }
+    
+    // الصور العامة
+    match /images/{imageId} {
+      // السماح بالقراءة للجميع
+      allow read: if true;
+      
+      // السماح بالكتابة للجميع (يمكن تقييدها لاحقاً)
+      allow write: if request.time < timestamp.date(2026, 12, 31);
+      
+      // أو استخدام المصادقة:
+      // allow write: if request.auth != null;
+    }
+  }
+}
+
