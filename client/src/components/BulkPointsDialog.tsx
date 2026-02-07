@@ -52,6 +52,7 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [gradeFilter, setGradeFilter] = useState<3 | 6 | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   // إعادة تعيين عند الإغلاق
   useEffect(() => {
@@ -62,6 +63,7 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
       setSelectedFields(new Set(["arabic"]));
       setPoints(10);
       setOperation("add");
+      setShowConfirmation(false);
     }
   }, [open]);
 
@@ -111,8 +113,8 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
     });
   };
 
-  // تطبيق التحديث
-  const handleApply = async () => {
+  // عرض شاشة التأكيد
+  const handleClickApply = () => {
     if (!db) {
       toast.error("قاعدة البيانات غير متاحة");
       return;
@@ -127,6 +129,21 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
       toast.error("يرجى إدخال عدد النقاط");
       return;
     }
+
+    // تحذير للأرقام الكبيرة
+    if (points > 50) {
+      toast.warning(`تحذير: الرقم ${points} كبير جداً! تأكد من صحته.`, {
+        duration: 4000,
+      });
+    }
+
+    // عرض شاشة التأكيد
+    setShowConfirmation(true);
+  };
+
+  // تطبيق التحديث الفعلي
+  const handleConfirmApply = async () => {
+    setShowConfirmation(false);
 
     try {
       setIsProcessing(true);
@@ -458,6 +475,55 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
           </div>
         )}
 
+        {/* شاشة التأكيد النهائية */}
+        {showConfirmation && step === 2 && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full space-y-6 animate-in fade-in zoom-in duration-200">
+              <div className="text-center">
+                <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-yellow-500" />
+                <h3 className="text-2xl font-bold mb-2">تأكيد التحديث</h3>
+                <p className="text-gray-600 text-lg">هل أنت متأكد من هذا الإجراء؟</p>
+              </div>
+
+              <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4 space-y-2">
+                <p className="text-xl font-bold text-center">
+                  {operation === "add" ? "➕ إضافة" : "➖ خصم"}{" "}
+                  <span className="text-3xl text-blue-600">{points}</span> نقطة
+                </p>
+                <p className="text-lg text-center">
+                  في: <strong>{Array.from(selectedFields).map(f => FIELDS_AR[f]).join(" و ")}</strong>
+                </p>
+                <p className="text-lg text-center">
+                  لـ <span className="text-2xl font-bold text-blue-600">{selectedStudents.size}</span> طالب
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => setShowConfirmation(false)}
+                  className="flex-1 text-lg font-semibold h-14"
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={handleConfirmApply}
+                  className="flex-1 text-lg font-bold h-14 bg-green-600 hover:bg-green-700"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    "✓ تأكيد التطبيق"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <DialogFooter className="gap-2">
           {step === 2 && (
             <Button
@@ -481,7 +547,7 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
           {step === 2 && (
             <Button
               size="lg"
-              onClick={handleApply}
+              onClick={handleClickApply}
               disabled={isProcessing || selectedStudents.size === 0 || points === 0}
               className="gap-2 text-lg font-bold"
             >

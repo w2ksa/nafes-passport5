@@ -81,6 +81,13 @@ export default function AdminDashboard() {
   const [newCommentText, setNewCommentText] = useState("");
   const [newCommentAuthor, setNewCommentAuthor] = useState("");
 
+  // فتح شاشة الرمز تلقائياً عند دخول الصفحة
+  useEffect(() => {
+    if (!isUnlocked) {
+      setIsUnlockDialogOpen(true);
+    }
+  }, [isUnlocked]);
+
   // دالة مساعدة لتسجيل التغييرات
   const logChange = async (
     action: "add" | "update" | "delete",
@@ -378,6 +385,57 @@ export default function AdminDashboard() {
   };
 
 
+  // إذا لم يكن مفتوح، عرض شاشة الرمز فقط
+  if (!isUnlocked) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <Dialog open={isUnlockDialogOpen} onOpenChange={setIsUnlockDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-center">
+                  <Lock className="w-12 h-12 mx-auto mb-3 text-yellow-600" />
+                  لوحة التحكم محمية
+                </DialogTitle>
+                <DialogDescription className="text-center text-base">
+                  أدخل كود التحرير للوصول إلى لوحة التحكم
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-3">
+                  <Label htmlFor="edit-code-input" className="text-lg font-semibold">
+                    كود التحرير
+                  </Label>
+                  <Input
+                    id="edit-code-input"
+                    type="password"
+                    value={editCode}
+                    onChange={(e) => setEditCode(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleUnlock();
+                      }
+                    }}
+                    placeholder="أدخل الكود..."
+                    autoFocus
+                    className="w-full text-xl h-14 text-center font-bold"
+                  />
+                </div>
+                <Button onClick={handleUnlock} className="w-full h-14 text-lg font-bold gap-2">
+                  <Unlock className="w-5 h-5" />
+                  فتح لوحة التحكم
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -406,55 +464,27 @@ export default function AdminDashboard() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                {/* زر فتح القفل */}
-                {!isUnlocked ? (
-                  <Dialog open={isUnlockDialogOpen} onOpenChange={setIsUnlockDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="gap-2">
-                        <Lock className="w-4 h-4" />
-                        فتح التحرير
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>إدخال كود التحرير</DialogTitle>
-                        <DialogDescription>
-                          أدخل كود التحرير للوصول إلى صلاحيات التعديل
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-code-input">كود التحرير</Label>
-                          <Input
-                            id="edit-code-input"
-                            type="password"
-                            value={editCode}
-                            onChange={(e) => setEditCode(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleUnlock();
-                              }
-                            }}
-                            placeholder="أدخل الكود..."
-                            autoFocus
-                            className="w-full text-foreground bg-background"
-                          />
-                        </div>
-                        <Button onClick={handleUnlock} className="w-full">
-                          <Unlock className="w-4 h-4 ml-2" />
-                          فتح
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                ) : (
-                  <div className="flex items-center gap-2 text-green-500">
-                    <Unlock className="w-4 h-4" />
-                    <span className="text-sm">التحرير مفعّل</span>
-                  </div>
-                )}
+              <div className="flex items-center gap-3">
+                {/* حالة لوحة التحكم */}
+                <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border-2 border-green-500 rounded-lg">
+                  <Unlock className="w-5 h-5 text-green-600" />
+                  <span className="text-base font-semibold text-green-700">مفتوحة</span>
+                </div>
+
+                {/* زر الخروج */}
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  className="gap-2 border-red-500 text-red-600 hover:bg-red-50 font-semibold"
+                  onClick={() => {
+                    setIsUnlocked(false);
+                    setEditCode("");
+                    toast.info("تم الخروج من لوحة التحكم");
+                  }}
+                >
+                  <Lock className="w-5 h-5" />
+                  خروج
+                </Button>
 
                 {/* الأزرار الجديدة */}
                 {isUnlocked && (
