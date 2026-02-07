@@ -12,7 +12,10 @@
     "format": "prettier --write .",
     "delete-data": "node scripts/deleteAllData.js",
     "add-students": "node scripts/addStudents.js",
-    "add-grade3": "node scripts/addGrade3Students.js"
+    "add-grade3": "node scripts/addGrade3Students.js",
+    "test:concurrent": "node scripts/testConcurrentAccess.js",
+    "test:firestore": "node scripts/testFirestoreSync.mjs",
+    "test:all": "npm run test:concurrent && npm run test:firestore"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

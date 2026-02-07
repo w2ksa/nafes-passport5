@@ -4,9 +4,9 @@
 
 ## 🌐 الروابط
 
-- **الموقع المباشر:** https://nafes-passport.web.app
+- **الموقع المباشر (الرابط الأساسي):** https://nafes-passport5.web.app
 - **GitHub Repository:** https://github.com/w2ksa/nafes-passport4
-- **Firebase Console:** https://console.firebase.google.com/project/nafes-passport
+- **Firebase Console:** https://console.firebase.google.com/project/nafes-passport5
 
 ## ✨ المميزات
 
