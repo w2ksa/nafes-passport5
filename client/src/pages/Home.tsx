@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Search, Users, Star, Trophy, GraduationCap, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn, normalizeArabic } from "@/lib/utils";
 
 export default function Home() {
   const { students, isLoading, setStudents } = useStudents();
@@ -32,7 +32,7 @@ export default function Home() {
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
       const matchesSearch = searchQuery === "" || 
-        student.name.toLowerCase().includes(searchQuery.toLowerCase());
+        normalizeArabic(student.name).includes(normalizeArabic(searchQuery));
       const matchesGrade = gradeFilter === "all" || student.grade === gradeFilter;
       return matchesSearch && matchesGrade;
     });
