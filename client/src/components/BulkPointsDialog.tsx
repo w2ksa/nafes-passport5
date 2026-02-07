@@ -210,8 +210,15 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
       setOpen(false);
       if (onUpdate) onUpdate();
     } catch (error) {
-      console.error("خطأ:", error);
-      toast.error("فشل في تحديث النقاط");
+      console.error("❌ خطأ في التحديث الجماعي:", error);
+      console.error("التفاصيل:", {
+        error,
+        selectedStudents: Array.from(selectedStudents),
+        selectedFields: Array.from(selectedFields),
+        points,
+        operation,
+      });
+      toast.error(`فشل في تحديث النقاط: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
     } finally {
       setIsProcessing(false);
     }
@@ -389,27 +396,26 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
           )}
         </div>
 
-        {/* شاشة التأكيد */}
+        {/* شاشة التأكيد - overlay بسيط */}
         {showConfirm && (
-          <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-center">تأكيد التحديث</DialogTitle>
-                <DialogDescription className="text-center">
-                  هل أنت متأكد من هذا الإجراء؟
-                </DialogDescription>
-              </DialogHeader>
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowConfirm(false)}>
+            <div className="bg-background rounded-lg p-6 max-w-md w-full space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="text-center">
+                <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-yellow-500" />
+                <h3 className="text-lg font-bold mb-2">تأكيد التحديث</h3>
+                <p className="text-sm text-muted-foreground">هل أنت متأكد من هذا الإجراء؟</p>
+              </div>
               
-              <div className="glass-card rounded-lg p-4 space-y-2 text-center">
-                <p className="text-lg font-bold">
+              <div className="glass-card rounded-lg p-4 space-y-1 text-center border">
+                <p className="font-bold">
                   {operation === "add" ? "➕ إضافة" : "➖ خصم"}{" "}
-                  <span className="text-primary">{points}</span> نقطة
+                  <span className="text-primary text-lg">{points}</span> نقطة
                 </p>
                 <p className="text-sm text-muted-foreground">
                   في: {Array.from(selectedFields).map(f => FIELDS_AR[f]).join(" و ")}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  لـ <span className="font-bold text-foreground">{selectedStudents.size}</span> طالب
+                <p className="text-sm">
+                  لـ <span className="font-bold">{selectedStudents.size}</span> طالب
                 </p>
               </div>
 
@@ -418,6 +424,7 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
                   variant="outline"
                   onClick={() => setShowConfirm(false)}
                   className="flex-1"
+                  disabled={isProcessing}
                 >
                   إلغاء
                 </Button>
@@ -433,8 +440,8 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
                   )}
                 </Button>
               </div>
-            </DialogContent>
-          </Dialog>
+            </div>
+          </div>
         )}
 
         {/* الأزرار */}
