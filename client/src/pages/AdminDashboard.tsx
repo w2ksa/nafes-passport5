@@ -327,6 +327,11 @@ export default function AdminDashboard() {
       return { ...s, stamps: updatedStamps };
     }));
 
+    // تحديث selectedStudent إذا كان هو نفس الطالب المفتوح في نافذة التعديل
+    if (selectedStudent && selectedStudent.id === studentId) {
+      setSelectedStudent({ ...selectedStudent, stamps: updatedStamps });
+    }
+
     // رسالة نجاح فورية
     toast.success("تم تحديث الشارة بنجاح");
 
