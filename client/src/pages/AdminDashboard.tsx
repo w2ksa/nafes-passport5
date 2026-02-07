@@ -316,14 +316,11 @@ export default function AdminDashboard() {
 
       const updatedStamps = { ...student.stamps, [stampType]: value };
 
-      // تحديث في قاعدة البيانات
+      // تحديث فوري - onSnapshot سيحدث القائمة تلقائياً
       await updateStudent(studentId, { stamps: updatedStamps });
-
-      // تحديث في القائمة المحلية
-      setStudents(students.map(s => {
-        if (s.id !== studentId) return s;
-        return { ...s, stamps: updatedStamps };
-      }));
+      
+      // رسالة نجاح فورية
+      toast.success("تم تحديث الشارة بنجاح");
     } catch (error) {
       console.error("خطأ في تحديث الأختام:", error);
       toast.error("فشل في تحديث الأختام");
