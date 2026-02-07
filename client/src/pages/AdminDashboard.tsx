@@ -61,7 +61,11 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ExcelUploader } from "@/components/ExcelUploader";
+import { ChangeHistoryDialog } from "@/components/ChangeHistoryDialog";
+import { BulkPointsDialog } from "@/components/BulkPointsDialog";
 import { nanoid } from "nanoid";
+import { collection, doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebaseConfig";
 
 export default function AdminDashboard() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -76,6 +80,32 @@ export default function AdminDashboard() {
   const [editingPoints, setEditingPoints] = useState<StationPoints | null>(null);
   const [newCommentText, setNewCommentText] = useState("");
   const [newCommentAuthor, setNewCommentAuthor] = useState("");
+
+  // دالة مساعدة لتسجيل التغييرات
+  const logChange = async (
+    action: "add" | "update" | "delete",
+    studentId: string,
+    studentName: string,
+    changes: { field: string; oldValue: any; newValue: any }[],
+    snapshotBefore?: Student
+  ) => {
+    if (!db) return; // لا نسجل إذا لم يكن Firebase مهيأ
+
+    try {
+      const changeLogRef = doc(collection(db, "change_logs"));
+      await setDoc(changeLogRef, {
+        timestamp: new Date().toISOString(),
+        action,
+        studentId,
+        studentName,
+        changes,
+        snapshotBefore: snapshotBefore || null,
+      });
+    } catch (error) {
+      console.error("خطأ في تسجيل التغيير:", error);
+      // لا نرمي خطأ هنا لأن هذا ليس عملاً حرجاً
+    }
+  };
 
   // جلب الطلاب من قاعدة البيانات
   useEffect(() => {
@@ -152,6 +182,13 @@ export default function AdminDashboard() {
       // إضافة الطالب الجديد إلى القائمة المحلية
       const newStudentWithId: Student = { ...studentData, id: newId };
       setStudents([...students, newStudentWithId]);
+      
+      // تسجيل التغيير
+      await logChange("add", newId, newStudent.name, [
+        { field: "name", oldValue: null, newValue: newStudent.name },
+        { field: "grade", oldValue: null, newValue: grade },
+      ]);
+      
       setNewStudent({ name: "", grade: "6" });
       setIsAddDialogOpen(false);
       toast.success("تم إضافة الطالب بنجاح");
@@ -164,7 +201,16 @@ export default function AdminDashboard() {
   // حذف طالب
   const handleDeleteStudent = async (id: string) => {
     try {
+      const student = students.find(s => s.id === id);
+      if (!student) return;
+
       await deleteStudent(id);
+      
+      // تسجيل التغيير قبل الحذف
+      await logChange("delete", id, student.name, [
+        { field: "all", oldValue: "exists", newValue: "deleted" }
+      ], student);
+      
       setStudents(students.filter(s => s.id !== id));
       toast.success("تم حذف الطالب بنجاح");
     } catch (error) {
@@ -188,6 +234,21 @@ export default function AdminDashboard() {
         totalPoints,
         rank: newRank,
       });
+
+      // تسجيل التغيير
+      const changes: { field: string; oldValue: any; newValue: any }[] = [];
+      Object.keys(newPoints).forEach((key) => {
+        const oldValue = student.points[key as keyof StationPoints];
+        const newValue = newPoints[key as keyof StationPoints];
+        if (oldValue !== newValue) {
+          changes.push({ field: `points.${key}`, oldValue, newValue });
+        }
+      });
+      if (student.totalPoints !== totalPoints) {
+        changes.push({ field: "totalPoints", oldValue: student.totalPoints, newValue: totalPoints });
+      }
+      
+      await logChange("update", studentId, student.name, changes, student);
 
       // تحديث في القائمة المحلية
       setStudents(students.map(s => {
@@ -392,6 +453,30 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-2 text-green-500">
                     <Unlock className="w-4 h-4" />
                     <span className="text-sm">التحرير مفعّل</span>
+                  </div>
+                )}
+
+                {/* الأزرار الجديدة */}
+                {isUnlocked && (
+                  <div className="flex gap-2 flex-wrap">
+                    {/* سجلات التغييرات */}
+                    <ChangeHistoryDialog 
+                      onRestore={async () => {
+                        // إعادة تحميل الطلاب بعد الاستعادة
+                        const fetchedStudents = await getAllStudents();
+                        setStudents(fetchedStudents);
+                      }}
+                    />
+
+                    {/* النقاط الجماعية */}
+                    <BulkPointsDialog 
+                      students={students}
+                      onUpdate={async () => {
+                        // إعادة تحميل الطلاب بعد التحديث
+                        const fetchedStudents = await getAllStudents();
+                        setStudents(fetchedStudents);
+                      }}
+                    />
                   </div>
                 )}
 
