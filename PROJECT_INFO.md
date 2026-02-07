@@ -26,6 +26,15 @@ https://nafes-passport5.web.app
 nafes-passport5
 ```
 
+### قاعدة البيانات
+```
+(default)
+```
+- **النوع:** Firestore (Native Mode)
+- **الطبعة:** Standard
+- **الموقع:** nam5 (North America)
+- **الحالة:** ✅ نشطة
+
 ### Auth Domain
 ```
 nafes-passport5.firebaseapp.com
@@ -39,6 +48,11 @@ nafes-passport5.firebasestorage.app
 ### Firebase Console
 ```
 https://console.firebase.google.com/project/nafes-passport5
+```
+
+### قاعدة البيانات (Firestore)
+```
+https://console.firebase.google.com/project/nafes-passport5/firestore/databases/-default-/data
 ```
 
 ---

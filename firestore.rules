@@ -1,6 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // ملاحظة: اسم قاعدة البيانات: (default)
+    // الموقع: nam5 (North America)
+    // النوع: Firestore Native Mode
 
     // قاعدة بيانات الطلاب
     match /students/{studentId} {
@@ -8,11 +11,20 @@ service cloud.firestore {
       allow read: if true;
       
       // السماح بالكتابة حتى تاريخ محدد (يمكن تعديله لاحقاً)
-      // للاستخدام الآمن، استخدم المصادقة بدلاً من التاريخ
+      // محدث من 2026 إلى 2030 - تاريخ التحديث: 7 فبراير 2026
       allow write: if request.time < timestamp.date(2030, 12, 31);
       
       // للاستخدام الآمن في المستقبل، استبدل السطر أعلاه بـ:
       // allow write: if request.auth != null;
+    }
+    
+    // سجلات التغييرات (Change Logs)
+    match /change_logs/{logId} {
+      // السماح بالقراءة للجميع (لعرض السجلات)
+      allow read: if true;
+      
+      // السماح بالكتابة حتى 2030
+      allow write: if request.time < timestamp.date(2030, 12, 31);
     }
     
     // منع الوصول لأي شيء آخر

@@ -50,9 +50,11 @@ let auth: any = null;
 try {
   if (hasValidConfig) {
     app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
+    // قاعدة البيانات: (default) - الموقع: nam5
+    db = getFirestore(app);  // يستخدم قاعدة البيانات الافتراضية (default)
     auth = getAuth(app);
     console.log('✅ Firebase تم تهيئته بنجاح');
+    console.log('📊 قاعدة البيانات: (default) - الموقع: nam5');
   } else {
     // إنشاء كائنات وهمية لتجنب الأخطاء
     console.warn('⚠️ Firebase غير مهيأ - سيتم استخدام البيانات المحلية');
