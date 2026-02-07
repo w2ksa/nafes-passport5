@@ -261,14 +261,28 @@ export default function AdminDashboard() {
 
   // تحديث نقاط الطالب
   const handleUpdatePoints = async (studentId: string, newPoints: StationPoints) => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
+    const totalPoints = calculateTotalPoints(newPoints, student.grade);
+    const newRank = getRankByPoints(totalPoints);
+
+    // 1. تحديث الواجهة فوراً (Optimistic Update)
+    const updatedStudent = {
+      ...student,
+      points: newPoints,
+      totalPoints,
+      rank: newRank,
+    };
+
+    setStudents(students.map(s => s.id === studentId ? updatedStudent : s));
+    
+    if (selectedStudent && selectedStudent.id === studentId) {
+      setSelectedStudent(updatedStudent);
+    }
+
+    // 2. التحديث في الخلفية (بدون انتظار)
     try {
-      const student = students.find(s => s.id === studentId);
-      if (!student) return;
-
-      const totalPoints = calculateTotalPoints(newPoints, student.grade);
-      const newRank = getRankByPoints(totalPoints);
-
-      // التحديثات السريعة
       const changes: { field: string; oldValue: any; newValue: any }[] = [];
       Object.keys(newPoints).forEach((key) => {
         const oldValue = student.points[key as keyof StationPoints];
@@ -281,50 +295,45 @@ export default function AdminDashboard() {
         changes.push({ field: "totalPoints", oldValue: student.totalPoints, newValue: totalPoints });
       }
 
-      // تنفيذ التحديث والتسجيل بالتوازي (أسرع!)
-      await Promise.all([
+      // تنفيذ في الخلفية (fire and forget)
+      Promise.all([
         updateStudent(studentId, {
           points: newPoints,
           totalPoints,
           rank: newRank,
         }),
         logChange("update", studentId, student.name, changes, student),
-      ]);
-
-      // ملاحظة: onSnapshot سيحدث القائمة تلقائياً - لا حاجة لـ setStudents
-      // لكن نحدث selectedStudent للعرض الفوري
-      if (selectedStudent && selectedStudent.id === studentId) {
-        setSelectedStudent({
-          ...selectedStudent,
-          points: newPoints,
-          totalPoints,
-          rank: newRank,
-        });
-      }
+      ]).catch((error) => {
+        console.error("خطأ في حفظ التحديث:", error);
+        toast.error("تم التحديث محلياً لكن فشل الحفظ في قاعدة البيانات");
+      });
     } catch (error) {
       console.error("خطأ في تحديث النقاط:", error);
       toast.error("فشل في تحديث النقاط");
-      throw error;
     }
   };
 
   // تحديث الأختام
   const handleUpdateStamps = async (studentId: string, stampType: 'silver' | 'gold' | 'diamond', value: boolean) => {
-    try {
-      const student = students.find(s => s.id === studentId);
-      if (!student) return;
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
 
-      const updatedStamps = { ...student.stamps, [stampType]: value };
+    const updatedStamps = { ...student.stamps, [stampType]: value };
+    
+    // 1. تحديث الواجهة فوراً
+    setStudents(students.map(s => {
+      if (s.id !== studentId) return s;
+      return { ...s, stamps: updatedStamps };
+    }));
 
-      // تحديث فوري - onSnapshot سيحدث القائمة تلقائياً
-      await updateStudent(studentId, { stamps: updatedStamps });
-      
-      // رسالة نجاح فورية
-      toast.success("تم تحديث الشارة بنجاح");
-    } catch (error) {
-      console.error("خطأ في تحديث الأختام:", error);
-      toast.error("فشل في تحديث الأختام");
-    }
+    // رسالة نجاح فورية
+    toast.success("تم تحديث الشارة بنجاح");
+    
+    // 2. الحفظ في الخلفية
+    updateStudent(studentId, { stamps: updatedStamps }).catch((error) => {
+      console.error("خطأ في حفظ الأختام:", error);
+      toast.error("فشل في حفظ الشارة في قاعدة البيانات");
+    });
   };
 
   // تحديث بيانات الطالب (بما في ذلك التعليقات)
