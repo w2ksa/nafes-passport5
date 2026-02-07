@@ -268,14 +268,7 @@ export default function AdminDashboard() {
       const totalPoints = calculateTotalPoints(newPoints, student.grade);
       const newRank = getRankByPoints(totalPoints);
 
-      // تحديث في قاعدة البيانات
-      await updateStudent(studentId, {
-        points: newPoints,
-        totalPoints,
-        rank: newRank,
-      });
-
-      // تسجيل التغيير
+      // التحديثات السريعة
       const changes: { field: string; oldValue: any; newValue: any }[] = [];
       Object.keys(newPoints).forEach((key) => {
         const oldValue = student.points[key as keyof StationPoints];
@@ -287,21 +280,19 @@ export default function AdminDashboard() {
       if (student.totalPoints !== totalPoints) {
         changes.push({ field: "totalPoints", oldValue: student.totalPoints, newValue: totalPoints });
       }
-      
-      await logChange("update", studentId, student.name, changes, student);
 
-      // تحديث في القائمة المحلية
-      setStudents(students.map(s => {
-        if (s.id !== studentId) return s;
-        return {
-          ...s,
+      // تنفيذ التحديث والتسجيل بالتوازي (أسرع!)
+      await Promise.all([
+        updateStudent(studentId, {
           points: newPoints,
           totalPoints,
           rank: newRank,
-        };
-      }));
+        }),
+        logChange("update", studentId, student.name, changes, student),
+      ]);
 
-      // تحديث selectedStudent إذا كان موجوداً
+      // ملاحظة: onSnapshot سيحدث القائمة تلقائياً - لا حاجة لـ setStudents
+      // لكن نحدث selectedStudent للعرض الفوري
       if (selectedStudent && selectedStudent.id === studentId) {
         setSelectedStudent({
           ...selectedStudent,
