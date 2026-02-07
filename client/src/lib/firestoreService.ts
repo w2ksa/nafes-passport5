@@ -177,7 +177,8 @@ export async function updateStudent(
     const studentRef = doc(db, STUDENTS_COLLECTION, id);
 
     // إذا تم تحديث النقاط، احسب النقاط الإجمالية والرتبة
-    if (updates.points) {
+    // (فقط إذا لم تكن محسوبة مسبقاً)
+    if (updates.points && (updates.totalPoints === undefined || updates.rank === undefined)) {
       const currentStudent = await getStudentById(id);
       if (currentStudent) {
         const totalPoints = calculateTotalPoints(
