@@ -99,6 +99,13 @@ export default function AdminDashboard() {
     if (!db) return; // لا نسجل إذا لم يكن Firebase مهيأ
 
     try {
+      // تنظيف snapshot من undefined (Firestore لا يقبلها)
+      const cleanSnapshot = snapshotBefore 
+        ? JSON.parse(JSON.stringify(snapshotBefore, (key, value) => 
+            value === undefined ? null : value
+          ))
+        : null;
+
       const changeLogRef = doc(collection(db, "change_logs"));
       await setDoc(changeLogRef, {
         timestamp: new Date().toISOString(),
@@ -106,7 +113,7 @@ export default function AdminDashboard() {
         studentId,
         studentName,
         changes,
-        snapshotBefore: snapshotBefore || null,
+        snapshotBefore: cleanSnapshot,
       });
     } catch (error) {
       console.error("خطأ في تسجيل التغيير:", error);

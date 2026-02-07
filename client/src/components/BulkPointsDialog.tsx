@@ -167,6 +167,11 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
           })
         );
 
+        // تنظيف snapshot من undefined (Firestore لا يقبلها)
+        const cleanSnapshot = JSON.parse(JSON.stringify(student, (key, value) => 
+          value === undefined ? null : value
+        ));
+
         const logRef = doc(collection(db, "change_logs"));
         logPromises.push(
           setDoc(logRef, {
@@ -175,7 +180,7 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
             studentId: student.id,
             studentName: student.name,
             changes,
-            snapshotBefore: student,
+            snapshotBefore: cleanSnapshot,
             bulkOperation: {
               operation,
               fields: Array.from(selectedFields),
