@@ -56,22 +56,26 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
 
   // تحديد/إلغاء تحديد الكل
   const toggleAll = () => {
-    if (selectedStudents.size === filteredStudents.length) {
-      setSelectedStudents(new Set());
-    } else {
-      setSelectedStudents(new Set(filteredStudents.map((s) => s.id)));
-    }
+    setSelectedStudents((prev) => {
+      if (prev.size === filteredStudents.length) {
+        return new Set();
+      } else {
+        return new Set(filteredStudents.map((s) => s.id));
+      }
+    });
   };
 
   // تحديد/إلغاء تحديد طالب
   const toggleStudent = (id: string) => {
-    const newSelected = new Set(selectedStudents);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedStudents(newSelected);
+    setSelectedStudents((prev) => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(id)) {
+        newSelected.delete(id);
+      } else {
+        newSelected.add(id);
+      }
+      return newSelected;
+    });
   };
 
   // تطبيق التحديث
@@ -328,26 +332,28 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
           <ScrollArea className="h-[300px] border rounded-lg p-4">
             <div className="space-y-2">
               {filteredStudents.map((student) => (
-                <div
+                <label
                   key={student.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  htmlFor={`student-${student.id}`}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     <Checkbox
+                      id={`student-${student.id}`}
                       checked={selectedStudents.has(student.id)}
                       onCheckedChange={() => toggleStudent(student.id)}
                     />
-                    <div>
+                    <div className="pointer-events-none">
                       <p className="font-medium">{student.name}</p>
                       <p className="text-sm text-gray-500">
                         الصف {student.grade} • النقاط الحالية: {student.points[field] || 0}
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="pointer-events-none">
                     {student.grade === 3 ? "٣" : "٦"}
                   </Badge>
-                </div>
+                </label>
               ))}
             </div>
           </ScrollArea>
