@@ -52,44 +52,6 @@ export default function Home() {
     };
   }, [students]);
 
-  // إرسال التعليق
-  const handleSubmitComment = async () => {
-    if (!selectedStudentId) {
-      toast.error("يرجى اختيار طالب");
-      return;
-    }
-    if (!commentAuthor.trim()) {
-      toast.error("يرجى إدخال اسم المرسل أو المشرف");
-      return;
-    }
-    if (!commentText.trim()) {
-      toast.error("يرجى إدخال التعليق");
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      await updateStudent(selectedStudentId, {
-        comment: commentText.trim(),
-        commentAuthor: commentAuthor.trim(),
-      });
-
-      // إعادة تحميل بيانات الطلاب
-      const updatedStudents = await getAllStudents();
-      setStudents(updatedStudents);
-
-      toast.success("تم إرسال التعليق بنجاح");
-      setCommentText("");
-      setCommentAuthor("");
-      setSelectedStudentId("");
-    } catch (error) {
-      console.error("خطأ في إرسال التعليق:", error);
-      toast.error("فشل في إرسال التعليق");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-background" dir="rtl">
       <Header />

@@ -740,10 +740,17 @@ export default function AdminDashboard() {
                                                       value={(editingPoints as any)?.[station.id] ?? 0}
                                                       onChange={(e) => {
                                                         if (editingPoints) {
+                                                          const value = parseInt(e.target.value) || 0;
+                                                          // احترام الحد الأقصى
+                                                          const cappedValue = Math.min(value, station.maxPoints);
                                                           setEditingPoints({
                                                             ...editingPoints,
-                                                            [station.id]: parseInt(e.target.value) || 0
+                                                            [station.id]: cappedValue
                                                           });
+                                                          // تحذير إذا تم التقليص
+                                                          if (value > station.maxPoints) {
+                                                            toast.warning(`الحد الأقصى لـ ${station.nameAr} هو ${station.maxPoints}`);
+                                                          }
                                                         }
                                                       }}
                                                     />
@@ -754,6 +761,13 @@ export default function AdminDashboard() {
                                               <Button
                                                 onClick={async () => {
                                                   if (selectedStudent && editingPoints) {
+                                                    // التحقق من صحة النقاط قبل الحفظ
+                                                    const validation = validatePoints(editingPoints, selectedStudent.grade);
+                                                    if (!validation.isValid) {
+                                                      toast.error("خطأ في النقاط: " + validation.errors.join(", "));
+                                                      return;
+                                                    }
+                                                    
                                                     try {
                                                       await handleUpdatePoints(selectedStudent.id, editingPoints);
                                                       toast.success("تم حفظ النقاط بنجاح");
