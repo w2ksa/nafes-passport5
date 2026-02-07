@@ -5,31 +5,19 @@
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { useStudents } from "@/hooks/useStudents";
+import { useTopStudents } from "@/hooks/useStudents";
 import { StampsDisplay } from "@/components/StampsDisplay";
 import { Trophy, Medal, Award, User, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
-import { useMemo } from "react";
 
 export default function Leaderboard() {
-  const { students, isLoading } = useStudents();
+  // جلب أفضل 3 طلاب لكل صف مباشرة من Firebase
+  const { data: grade6Top3 = [], isLoading: isLoadingGrade6 } = useTopStudents(6, 3);
+  const { data: grade3Top3 = [], isLoading: isLoadingGrade3 } = useTopStudents(3, 3);
 
-  // ترتيب الطلاب حسب النقاط
-  const { grade6Top3, grade3Top3 } = useMemo(() => {
-    const grade6 = students
-      .filter(s => s.grade === 6)
-      .sort((a, b) => b.totalPoints - a.totalPoints)
-      .slice(0, 3);
-
-    const grade3 = students
-      .filter(s => s.grade === 3)
-      .sort((a, b) => b.totalPoints - a.totalPoints)
-      .slice(0, 3);
-
-    return { grade6Top3: grade6, grade3Top3: grade3 };
-  }, [students]);
+  const isLoading = isLoadingGrade6 || isLoadingGrade3;
 
   const getRankIcon = (position: number) => {
     switch (position) {
@@ -49,13 +37,13 @@ export default function Leaderboard() {
     }
   };
 
-  const LeaderboardSection = ({ 
-    title, 
-    students, 
-    gradeLabel 
-  }: { 
-    title: string; 
-    students: typeof grade6Top3; 
+  const LeaderboardSection = ({
+    title,
+    students,
+    gradeLabel
+  }: {
+    title: string;
+    students: typeof grade6Top3;
     gradeLabel: string;
   }) => (
     <div className="glass-card rounded-2xl p-6">
@@ -112,7 +100,7 @@ export default function Leaderboard() {
                   <p className={cn(
                     "text-2xl font-bold",
                     index === 0 ? "text-[#eab308]" :
-                    index === 1 ? "text-[#94a3b8]" : "text-[#cd7f32]"
+                      index === 1 ? "text-[#94a3b8]" : "text-[#cd7f32]"
                   )}>
                     {student.totalPoints}
                   </p>
@@ -139,7 +127,7 @@ export default function Leaderboard() {
         {/* رأس الصفحة */}
         <section className="relative overflow-hidden py-12">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
-          
+
           <div className="container relative text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}

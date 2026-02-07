@@ -8,6 +8,7 @@ import { Link } from "wouter";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { StudentCard } from "@/components/StudentCard";
+import { StudentCardSkeletonGrid } from "@/components/StudentCardSkeleton";
 import { RANKS } from "@/lib/data";
 import { useStudents } from "@/hooks/useStudents";
 import { Input } from "@/components/ui/input";
@@ -31,7 +32,7 @@ export default function Home() {
   // تصفية الطلاب
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
-      const matchesSearch = searchQuery === "" || 
+      const matchesSearch = searchQuery === "" ||
         normalizeArabic(student.name).includes(normalizeArabic(searchQuery));
       const matchesGrade = gradeFilter === "all" || student.grade === gradeFilter;
       return matchesSearch && matchesGrade;
@@ -171,10 +172,7 @@ export default function Home() {
 
             {/* شبكة الطلاب */}
             {isLoading ? (
-              <div className="text-center py-12">
-                <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary mb-4" />
-                <p className="text-muted-foreground">جارٍ تحميل بيانات الطلاب...</p>
-              </div>
+              <StudentCardSkeletonGrid count={6} />
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
