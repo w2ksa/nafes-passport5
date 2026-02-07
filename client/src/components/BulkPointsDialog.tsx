@@ -44,7 +44,7 @@ const FIELDS_AR: Record<FieldKey, string> = {
 export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) {
   const [open, setOpen] = useState(false);
   const [operation, setOperation] = useState<"add" | "subtract">("add");
-  const [selectedFields, setSelectedFields] = useState<Set<FieldKey>>(new Set(["arabic"]));
+  const [selectedFields, setSelectedFields] = useState<Set<FieldKey>>(new Set<FieldKey>(["arabic" as FieldKey]));
   const [points, setPoints] = useState<number>(10);
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [gradeFilter, setGradeFilter] = useState<3 | 6 | "all">("all");
@@ -55,7 +55,7 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
   useEffect(() => {
     if (!open) {
       setOperation("add");
-      setSelectedFields(new Set(["arabic"]));
+      setSelectedFields(new Set<FieldKey>(["arabic" as FieldKey]));
       setPoints(10);
       setSelectedStudents(new Set());
       setGradeFilter("all");
@@ -112,7 +112,7 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
   // التطبيق
   const handleApply = async () => {
     setShowConfirm(false);
-    
+
     if (!db) {
       toast.error("قاعدة البيانات غير متاحة");
       return;
@@ -120,12 +120,12 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
 
     try {
       setIsProcessing(true);
-      
+
       let cappedCount = 0;
       const updatePromises = [];
       const logPromises = [];
 
-      for (const studentId of selectedStudents) {
+      for (const studentId of Array.from(selectedStudents)) {
         const student = students.find((s) => s.id === studentId);
         if (!student) continue;
 
@@ -141,11 +141,11 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
             points,
             student.grade
           );
-          
+
           if (operation === "add" && newValue < oldValue + points) {
             cappedCount++;
           }
-          
+
           updatedPoints[field] = newValue;
           changes.push({
             field: `points.${field}`,
@@ -168,7 +168,7 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
         );
 
         // تنظيف snapshot من undefined (Firestore لا يقبلها)
-        const cleanSnapshot = JSON.parse(JSON.stringify(student, (key, value) => 
+        const cleanSnapshot = JSON.parse(JSON.stringify(student, (key, value) =>
           value === undefined ? null : value
         ));
 
@@ -194,7 +194,7 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
       await Promise.all([...updatePromises, ...logPromises]);
 
       const fieldsNames = Array.from(selectedFields).map(f => FIELDS_AR[f]).join(" و ");
-      
+
       if (cappedCount > 0) {
         toast.success(
           `تم تحديث ${selectedStudents.size} طالب بنجاح`,
@@ -293,7 +293,7 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
               {Object.entries(FIELDS_AR).map(([key, label]) => {
                 const fieldKey = key as FieldKey;
                 const isSelected = selectedFields.has(fieldKey);
-                
+
                 return (
                   <Button
                     key={key}
@@ -344,7 +344,7 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
               <div className="space-y-2">
                 {filteredStudents.map((student) => {
                   const isSelected = selectedStudents.has(student.id);
-                  
+
                   return (
                     <div
                       key={student.id}
@@ -410,7 +410,7 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
                 <h3 className="text-lg font-bold mb-2">تأكيد التحديث</h3>
                 <p className="text-sm text-muted-foreground">هل أنت متأكد من هذا الإجراء؟</p>
               </div>
-              
+
               <div className="glass-card rounded-lg p-4 space-y-1 text-center border">
                 <p className="font-bold">
                   {operation === "add" ? "➕ إضافة" : "➖ خصم"}{" "}

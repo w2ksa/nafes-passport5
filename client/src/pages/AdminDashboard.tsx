@@ -18,6 +18,7 @@ import {
   type StationPoints,
   type Comment
 } from "@/lib/data";
+import { validatePoints } from "@/lib/pointsLimits";
 import {
   getAllStudents,
   addStudent,
@@ -100,10 +101,10 @@ export default function AdminDashboard() {
 
     try {
       // تنظيف snapshot من undefined (Firestore لا يقبلها)
-      const cleanSnapshot = snapshotBefore 
-        ? JSON.parse(JSON.stringify(snapshotBefore, (key, value) => 
-            value === undefined ? null : value
-          ))
+      const cleanSnapshot = snapshotBefore
+        ? JSON.parse(JSON.stringify(snapshotBefore, (key, value) =>
+          value === undefined ? null : value
+        ))
         : null;
 
       const changeLogRef = doc(collection(db, "change_logs"));
@@ -133,7 +134,7 @@ export default function AdminDashboard() {
     // استخدام onSnapshot للتحديثات الفورية
     const studentsRef = collection(db, "students");
     const q = query(studentsRef, orderBy("totalPoints", "desc"));
-    
+
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
@@ -222,13 +223,13 @@ export default function AdminDashboard() {
       // إضافة الطالب الجديد إلى القائمة المحلية
       const newStudentWithId: Student = { ...studentData, id: newId };
       setStudents([...students, newStudentWithId]);
-      
+
       // تسجيل التغيير
       await logChange("add", newId, newStudent.name, [
         { field: "name", oldValue: null, newValue: newStudent.name },
         { field: "grade", oldValue: null, newValue: grade },
       ]);
-      
+
       setNewStudent({ name: "", grade: "6" });
       setIsAddDialogOpen(false);
       toast.success("تم إضافة الطالب بنجاح");
@@ -245,12 +246,12 @@ export default function AdminDashboard() {
       if (!student) return;
 
       await deleteStudent(id);
-      
+
       // تسجيل التغيير قبل الحذف
       await logChange("delete", id, student.name, [
         { field: "all", oldValue: "exists", newValue: "deleted" }
       ], student);
-      
+
       setStudents(students.filter(s => s.id !== id));
       toast.success("تم حذف الطالب بنجاح");
     } catch (error) {
@@ -276,7 +277,7 @@ export default function AdminDashboard() {
     };
 
     setStudents(students.map(s => s.id === studentId ? updatedStudent : s));
-    
+
     if (selectedStudent && selectedStudent.id === studentId) {
       setSelectedStudent(updatedStudent);
     }
@@ -319,7 +320,7 @@ export default function AdminDashboard() {
     if (!student) return;
 
     const updatedStamps = { ...student.stamps, [stampType]: value };
-    
+
     // 1. تحديث الواجهة فوراً
     setStudents(students.map(s => {
       if (s.id !== studentId) return s;
@@ -328,7 +329,7 @@ export default function AdminDashboard() {
 
     // رسالة نجاح فورية
     toast.success("تم تحديث الشارة بنجاح");
-    
+
     // 2. الحفظ في الخلفية
     updateStudent(studentId, { stamps: updatedStamps }).catch((error) => {
       console.error("خطأ في حفظ الأختام:", error);
@@ -502,8 +503,8 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* زر الخروج */}
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="lg"
                   className="gap-2 border-red-500 text-red-600 hover:bg-red-50 font-semibold"
                   onClick={() => {
@@ -520,7 +521,7 @@ export default function AdminDashboard() {
                 {isUnlocked && (
                   <div className="flex gap-2 flex-wrap">
                     {/* سجلات التغييرات */}
-                    <ChangeHistoryDialog 
+                    <ChangeHistoryDialog
                       onRestore={async () => {
                         // إعادة تحميل الطلاب بعد الاستعادة
                         const fetchedStudents = await getAllStudents();
@@ -529,7 +530,7 @@ export default function AdminDashboard() {
                     />
 
                     {/* النقاط الجماعية */}
-                    <BulkPointsDialog 
+                    <BulkPointsDialog
                       students={students}
                       onUpdate={async () => {
                         // إعادة تحميل الطلاب بعد التحديث
@@ -797,7 +798,7 @@ export default function AdminDashboard() {
                                                       toast.error("خطأ في النقاط: " + validation.errors.join(", "));
                                                       return;
                                                     }
-                                                    
+
                                                     try {
                                                       await handleUpdatePoints(selectedStudent.id, editingPoints);
                                                       toast.success("تم حفظ النقاط بنجاح");
