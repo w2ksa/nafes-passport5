@@ -195,8 +195,8 @@ export const SAMPLE_STUDENTS: Student[] = [
   },
 ];
 
-// كود التحرير السري
-export const EDIT_CODE = '1354222';
+// كود التحرير السري (محمي في .env)
+export const EDIT_CODE = import.meta.env.VITE_EDIT_CODE || '';
 
 // التحقق من كود التحرير
 export function verifyEditCode(code: string): boolean {
