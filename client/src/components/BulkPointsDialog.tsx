@@ -26,6 +26,7 @@ import { db } from "@/lib/firebaseConfig";
 import { toast } from "sonner";
 import type { Student } from "@/lib/data";
 import { calculateTotalPoints, getRankByPoints } from "@/lib/data";
+import { applyPointsWithLimit, calculateActualPoints, getMaxPoints } from "@/lib/pointsLimits";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface BulkPointsDialogProps {
@@ -159,17 +160,37 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
         const updatedPoints = { ...student.points };
         const changes: any[] = [];
 
+        let cappedCount = 0;
+        const cappedDetails: string[] = [];
+
         selectedFields.forEach((field) => {
           const oldValue = updatedPoints[field] || 0;
-          const newValue = operation === "add" 
-            ? oldValue + points 
-            : Math.max(0, oldValue - points);
           
-          updatedPoints[field] = newValue;
+          // تطبيق النقاط مع احترام الحد الأقصى
+          const result = calculateActualPoints(
+            oldValue,
+            field,
+            operation,
+            points,
+            student.grade
+          );
+          
+          updatedPoints[field] = result.actualPoints;
+          
+          // تسجيل إذا تم التقليص
+          if (result.wasCapped) {
+            cappedCount++;
+            cappedDetails.push(
+              `${student.name}: ${FIELDS_AR[field]} (${oldValue} → ${result.actualPoints}، الحد الأقصى: ${result.maxReached})`
+            );
+          }
+          
           changes.push({
             field: `points.${field}`,
             oldValue,
-            newValue,
+            newValue: result.actualPoints,
+            wasCapped: result.wasCapped,
+            maxPoints: result.maxReached,
           });
         });
 
@@ -217,12 +238,25 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
       await Promise.all([...updatePromises, ...changeLogsPromises]);
 
       const fieldsNames = Array.from(selectedFields).map(f => FIELDS_AR[f]).join(" و ");
-      toast.success(
-        `تم تحديث ${selectedStudents.size} طالب بنجاح!`,
-        {
-          description: `${operation === "add" ? "إضافة" : "خصم"} ${points} نقطة في: ${fieldsNames}`,
-        }
-      );
+      
+      // رسالة النجاح
+      if (cappedCount > 0) {
+        toast.success(
+          `تم تحديث ${selectedStudents.size} طالب بنجاح!`,
+          {
+            description: `تنبيه: تم تطبيق الحد الأقصى لـ ${cappedCount} حالة. راجع سجلات التغييرات للتفاصيل.`,
+            duration: 6000,
+          }
+        );
+        console.log("الحالات التي تم تقليصها:", cappedDetails);
+      } else {
+        toast.success(
+          `تم تحديث ${selectedStudents.size} طالب بنجاح!`,
+          {
+            description: `${operation === "add" ? "إضافة" : "خصم"} ${points} نقطة في: ${fieldsNames}`,
+          }
+        );
+      }
 
       setOpen(false);
       if (onUpdate) onUpdate();
@@ -243,10 +277,10 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-5xl max-h-[95vh]">
-        <DialogHeader>
-          <DialogTitle className="text-3xl font-bold">تحديث النقاط الجماعي</DialogTitle>
-          <DialogDescription className="text-lg">
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="text-3xl font-black text-gray-900">تحديث النقاط الجماعي</DialogTitle>
+          <DialogDescription className="text-lg text-gray-600">
             إضافة أو خصم نقاط لعدة طلاب في نفس الوقت
           </DialogDescription>
         </DialogHeader>
@@ -330,38 +364,50 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
             <div className="grid grid-cols-2 gap-6">
               {/* العملية */}
               <div className="space-y-3">
-                <Label className="text-lg font-semibold">العملية</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <Label className="text-xl font-black text-gray-900">١. اختر العملية</Label>
+                <div className="grid grid-cols-2 gap-3">
                   <Button
                     size="lg"
                     variant={operation === "add" ? "default" : "outline"}
                     onClick={() => setOperation("add")}
-                    className="h-16 text-xl gap-2"
+                    className={`h-20 text-xl font-bold gap-2 ${
+                      operation === "add" 
+                        ? "bg-green-600 hover:bg-green-700" 
+                        : "border-2"
+                    }`}
                   >
-                    <Plus className="h-6 w-6" />
-                    إضافة
+                    <Plus className="h-7 w-7" />
+                    <span>إضافة</span>
                   </Button>
                   <Button
                     size="lg"
                     variant={operation === "subtract" ? "default" : "outline"}
                     onClick={() => setOperation("subtract")}
-                    className="h-16 text-xl gap-2"
+                    className={`h-20 text-xl font-bold gap-2 ${
+                      operation === "subtract" 
+                        ? "bg-red-600 hover:bg-red-700" 
+                        : "border-2"
+                    }`}
                   >
-                    <Minus className="h-6 w-6" />
-                    خصم
+                    <Minus className="h-7 w-7" />
+                    <span>خصم</span>
                   </Button>
                 </div>
               </div>
 
               {/* عدد النقاط */}
               <div className="space-y-3">
-                <Label className="text-lg font-semibold">عدد النقاط</Label>
+                <Label className="text-xl font-black text-gray-900">٢. عدد النقاط</Label>
                 <Input
                   type="number"
                   min="0"
+                  max="100"
                   value={points}
-                  onChange={(e) => setPoints(parseInt(e.target.value) || 0)}
-                  className="h-16 text-2xl font-bold text-center"
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    setPoints(Math.min(val, 100)); // حد أقصى 100
+                  }}
+                  className="h-20 text-4xl font-black text-center border-2"
                   placeholder="10"
                 />
               </div>
@@ -369,7 +415,10 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
 
             {/* المواد */}
             <div className="space-y-3">
-              <Label className="text-lg font-semibold">اختر المواد/الأنشطة (يمكن اختيار أكثر من واحدة)</Label>
+              <Label className="text-xl font-black text-gray-900">
+                ٣. اختر المواد/الأنشطة
+                <span className="text-base font-normal text-gray-600 mr-2">(يمكن أكثر من واحدة)</span>
+              </Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {Object.entries(FIELDS_AR).map(([key, label]) => {
                   // إخفاء العلوم للصف الثالث
@@ -384,13 +433,15 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
                       size="lg"
                       variant={isSelected ? "default" : "outline"}
                       onClick={() => toggleField(fieldKey)}
-                      className="h-16 text-lg font-semibold"
+                      className={`h-16 text-lg font-bold gap-2 border-2 ${
+                        isSelected ? "shadow-md" : ""
+                      }`}
                     >
                       <Checkbox
                         checked={isSelected}
-                        className="ml-2 pointer-events-none"
+                        className="h-5 w-5 pointer-events-none"
                       />
-                      {label}
+                      <span className="truncate">{label}</span>
                     </Button>
                   );
                 })}
@@ -401,35 +452,42 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
 
             {/* ملخص */}
             {selectedStudents.size > 0 && points > 0 && selectedFields.size > 0 && (
-              <Alert className="bg-green-50 border-green-300">
-                <AlertDescription className="text-xl font-bold text-green-800">
-                  سيتم {operation === "add" ? "إضافة" : "خصم"}{" "}
-                  <span className="text-2xl">{points}</span> نقطة في:{" "}
-                  <span className="underline">
-                    {Array.from(selectedFields).map(f => FIELDS_AR[f]).join(" و ")}
-                  </span>
-                  {" "}لـ <span className="text-2xl">{selectedStudents.size}</span> طالب
+              <Alert className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 shadow-md">
+                <AlertDescription className="text-center space-y-2 py-2">
+                  <div className="text-2xl font-black text-green-800">
+                    {operation === "add" ? "➕ إضافة" : "➖ خصم"}{" "}
+                    <span className="text-4xl text-green-700">{points}</span> نقطة
+                  </div>
+                  <div className="text-xl font-bold text-gray-700">
+                    في: {Array.from(selectedFields).map(f => FIELDS_AR[f]).join(" و ")}
+                  </div>
+                  <div className="text-xl font-bold text-green-800">
+                    لـ <span className="text-3xl">{selectedStudents.size}</span> طالب
+                  </div>
                 </AlertDescription>
               </Alert>
             )}
 
             {/* قائمة الطلاب */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-xl font-semibold">
-                  اختر الطلاب ({selectedStudents.size}/{filteredStudents.length})
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <Label className="text-xl font-black text-gray-900">
+                  ٤. اختر الطلاب 
+                  <span className="text-2xl font-black text-blue-600 mr-2">
+                    ({selectedStudents.size}/{filteredStudents.length})
+                  </span>
                 </Label>
                 <Button
                   variant="outline"
                   size="lg"
                   onClick={toggleAll}
-                  className="text-base font-semibold"
+                  className="text-lg font-bold border-2 h-12"
                 >
-                  {selectedStudents.size === filteredStudents.length ? "إلغاء الكل" : "تحديد الكل"}
+                  {selectedStudents.size === filteredStudents.length ? "❌ إلغاء الكل" : "✅ تحديد الكل"}
                 </Button>
               </div>
 
-              <ScrollArea className="h-[350px] border-2 rounded-lg p-4">
+              <ScrollArea className="h-[350px] border-2 rounded-lg p-4 bg-white">
                 <div className="space-y-3">
                   {filteredStudents.map((student) => {
                     const isSelected = selectedStudents.has(student.id);
@@ -439,32 +497,46 @@ export function BulkPointsDialog({ students, onUpdate }: BulkPointsDialogProps) 
                         key={student.id}
                         onClick={() => toggleStudent(student.id)}
                         className={`
-                          flex items-center justify-between p-4 rounded-lg 
+                          flex items-center justify-between p-5 rounded-xl 
                           transition-all cursor-pointer border-2
                           ${isSelected 
-                            ? "bg-blue-50 border-blue-500 shadow-md" 
-                            : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                            ? "bg-blue-50 border-blue-600 shadow-lg scale-[1.02]" 
+                            : "bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                           }
                         `}
                       >
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
                           <Checkbox
                             checked={isSelected}
-                            className="h-6 w-6 pointer-events-none"
+                            className="h-7 w-7 pointer-events-none shrink-0"
                           />
-                          <div>
-                            <p className="font-bold text-xl">{student.name}</p>
-                            <div className="flex gap-4 mt-1 text-base text-gray-600">
-                              {Array.from(selectedFields).map((field) => (
-                                <span key={field}>
-                                  {FIELDS_AR[field]}: <strong>{student.points[field] || 0}</strong>
-                                </span>
-                              ))}
+                          <div className="flex-1 min-w-0">
+                            {/* اسم الطالب - أسود غامق */}
+                            <p className="font-black text-2xl text-gray-900 truncate">
+                              {student.name}
+                            </p>
+                            {/* النقاط الحالية */}
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                              {Array.from(selectedFields).map((field) => {
+                                const currentPoints = student.points[field] || 0;
+                                const maxPoints = getMaxPoints(field, student.grade);
+                                
+                                return (
+                                  <span key={field} className="text-base text-gray-700 whitespace-nowrap">
+                                    {FIELDS_AR[field]}: <strong className="text-blue-700 text-lg">{currentPoints}</strong>
+                                    <span className="text-xs text-gray-500 mr-1">/{maxPoints}</span>
+                                  </span>
+                                );
+                              })}
                             </div>
                           </div>
                         </div>
-                        <Badge variant="outline" className="text-lg px-3 py-1 pointer-events-none">
-                          {student.grade === 3 ? "الصف ٣" : "الصف ٦"}
+                        {/* Badge بيضاء */}
+                        <Badge 
+                          variant="outline" 
+                          className="text-lg px-4 py-2 pointer-events-none shrink-0 bg-white border-2 font-bold"
+                        >
+                          {student.grade === 3 ? "٣" : "٦"}
                         </Badge>
                       </div>
                     );
