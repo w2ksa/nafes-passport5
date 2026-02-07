@@ -64,7 +64,7 @@ import { ExcelUploader } from "@/components/ExcelUploader";
 import { ChangeHistoryDialog } from "@/components/ChangeHistoryDialog";
 import { BulkPointsDialog } from "@/components/BulkPointsDialog";
 import { nanoid } from "nanoid";
-import { collection, doc, setDoc } from "firebase/firestore";
+import { collection, doc, setDoc, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebaseConfig";
 
 export default function AdminDashboard() {
@@ -121,22 +121,48 @@ export default function AdminDashboard() {
     }
   };
 
-  // جلب الطلاب من قاعدة البيانات
+  // جلب الطلاب من قاعدة البيانات مع Realtime Updates
   useEffect(() => {
-    const loadStudents = async () => {
-      try {
-        setIsLoading(true);
-        const fetchedStudents = await getAllStudents();
+    if (!db) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
+    // استخدام onSnapshot للتحديثات الفورية
+    const studentsRef = collection(db, "students");
+    const q = query(studentsRef, orderBy("totalPoints", "desc"));
+    
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const fetchedStudents: Student[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          fetchedStudents.push({
+            id: doc.id,
+            name: data.name || "",
+            grade: data.grade || 6,
+            avatar: data.avatar,
+            points: data.points || {},
+            totalPoints: data.totalPoints || 0,
+            rank: data.rank || {},
+            stamps: data.stamps || { silver: false, gold: false, diamond: false },
+            viewCount: data.viewCount || 0,
+            comments: data.comments || [],
+          } as Student);
+        });
         setStudents(fetchedStudents);
-      } catch (error) {
-        console.error("خطأ في جلب الطلاب:", error);
-        toast.error("فشل في جلب بيانات الطلاب من قاعدة البيانات");
-      } finally {
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error("خطأ في الاستماع:", error);
         setIsLoading(false);
       }
-    };
+    );
 
-    loadStudents();
+    return () => unsubscribe();
   }, []);
 
   // نموذج إضافة طالب جديد
