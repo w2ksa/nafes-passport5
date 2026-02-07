@@ -131,12 +131,12 @@ firebase deploy --only hosting   # نشر على Firebase
 
 يحتوي على إعدادات Firebase:
 ```bash
-VITE_FIREBASE_API_KEY=AIzaSyDr-5HPGkhnR1wt5h15EFu0p41fEluL4lM
-VITE_FIREBASE_AUTH_DOMAIN=nafes-passport5.firebaseapp.com
+VITE_FIREBASE_API_KEY=****** (راجع ملف .env)
+VITE_FIREBASE_AUTH_DOMAIN=****** (راجع ملف .env)
 VITE_FIREBASE_PROJECT_ID=nafes-passport5
-VITE_FIREBASE_STORAGE_BUCKET=nafes-passport5.firebasestorage.app
-VITE_FIREBASE_MESSAGING_SENDER_ID=127626917714
-VITE_FIREBASE_APP_ID=1:127626917714:web:64b2a59e689bc3666fac8b
+VITE_FIREBASE_STORAGE_BUCKET=****** (راجع ملف .env)
+VITE_FIREBASE_MESSAGING_SENDER_ID=****** (راجع ملف .env)
+VITE_FIREBASE_APP_ID=****** (راجع ملف .env)
 ```
 
 ---

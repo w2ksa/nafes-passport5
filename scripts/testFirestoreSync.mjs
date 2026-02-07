@@ -20,12 +20,12 @@ import {
 
 // إعدادات Firebase (من ملف .env)
 const firebaseConfig = {
-  apiKey: "AIzaSyDr-5HPGkhnR1wt5h15EFu0p41fEluL4lM",
-  authDomain: "nafes-passport5.firebaseapp.com",
-  projectId: "nafes-passport5",
-  storageBucket: "nafes-passport5.firebasestorage.app",
-  messagingSenderId: "127626917714",
-  appId: "1:127626917714:web:64b2a59e689bc3666fac8b",
+  apiKey: process.env.VITE_FIREBASE_API_KEY || "",
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || "nafes-passport5",
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: process.env.VITE_FIREBASE_APP_ID || "",
 };
 
 // ألوان للطباعة

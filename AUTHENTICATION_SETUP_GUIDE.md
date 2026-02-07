@@ -318,8 +318,8 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDr-5HPGkhnR1wt5h15EFu0p41fEluL4lM",
-  authDomain: "nafes-passport5.firebaseapp.com",
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: "nafes-passport5",
 };
 
