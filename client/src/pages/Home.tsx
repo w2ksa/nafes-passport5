@@ -31,7 +31,8 @@ export default function Home() {
   // تصفية الطلاب
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
-      const matchesSearch = student.name.includes(searchQuery);
+      const matchesSearch = searchQuery === "" || 
+        student.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesGrade = gradeFilter === "all" || student.grade === gradeFilter;
       return matchesSearch && matchesGrade;
     });
